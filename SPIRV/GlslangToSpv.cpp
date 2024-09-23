@@ -1897,6 +1897,7 @@ TGlslangToSpvTraverser::TGlslangToSpvTraverser(unsigned int spvVersion,
     }
     case EShLangTask:
     case EShLangMesh:
+    {
         if(isMeshShaderExt) {
             builder.addCapability(spv::CapabilityMeshShadingEXT);
             builder.addExtension(spv::E_SPV_EXT_mesh_shader);
@@ -1904,7 +1905,15 @@ TGlslangToSpvTraverser::TGlslangToSpvTraverser(unsigned int spvVersion,
             builder.addCapability(spv::CapabilityMeshShadingNV);
             builder.addExtension(spv::E_SPV_NV_mesh_shader);
         }
-        if (glslangIntermediate->getSpv().spv >= glslang::EShTargetSpv_1_6) {
+        
+        bool needSizeId = false;
+        for (int dim = 0; dim < 3; ++dim) {
+            if ((glslangIntermediate->getLocalSizeSpecId(dim) != glslang::TQualifier::layoutNotSet)) {
+                needSizeId = true;
+                break;
+            }
+        }
+        if (glslangIntermediate->getSpv().spv >= glslang::EShTargetSpv_1_6 && needSizeId) {
             std::vector<spv::Id> dimConstId;
             for (int dim = 0; dim < 3; ++dim) {
                 bool specConst = (glslangIntermediate->getLocalSizeSpecId(dim) != glslang::TQualifier::layoutNotSet);
@@ -1912,6 +1921,7 @@ TGlslangToSpvTraverser::TGlslangToSpvTraverser(unsigned int spvVersion,
                 if (specConst) {
                     builder.addDecoration(dimConstId.back(), spv::DecorationSpecId,
                                           glslangIntermediate->getLocalSizeSpecId(dim));
+                    needSizeId = true;
                 }
             }
             builder.addExecutionModeId(shaderEntry, spv::ExecutionModeLocalSizeId, dimConstId);
@@ -1936,7 +1946,7 @@ TGlslangToSpvTraverser::TGlslangToSpvTraverser(unsigned int spvVersion,
                 builder.addExecutionMode(shaderEntry, (spv::ExecutionMode)mode);
         }
         break;
-
+    }
     default:
         break;
     }
